@@ -257,7 +257,7 @@ impl StreamDeck {
     }
 
     /// Convert an image into the device dependent format
-    fn convert_image(&self, image: Vec<u8>) -> Result<DeviceImage, Error> {
+    pub fn convert_image(&self, image: Vec<u8>) -> Result<DeviceImage, Error> {
             // Check image dimensions
         if image.len() != self.kind.image_size_bytes() {
             return Err(Error::InvalidImageSize);
