@@ -75,7 +75,12 @@ pub enum Commands {
 
         #[structopt(flatten)]
         opts: ImageOptions,
-    }
+    },
+    SetLcdImage {
+        x: u16,
+        y: u16,
+        file: String,
+    },
 }
 
 fn main() {
@@ -147,6 +152,41 @@ fn do_command(deck: &mut StreamDeck, cmd: Commands) -> Result<(), Error> {
             info!("Setting key {} to image: {}", key, file);
             deck.set_button_file(key, &file, &opts)?;
         }
+        Commands::SetLcdImage{x, y, file} => {
+            info!("writing {} to {},{}", file, x, y);
+
+            let (w, h) = (800, 100);
+            let mut buf = vec![0u8; w * h * 3];
+            let c = [255, 255, 255];
+            for i in 0..w {
+                let x = i;
+                let y = i % h;
+                let n = (x + (y * w)) * 3;
+                // println!("{} {} {}", x, y, n);
+                buf[n + 0] = c[0];
+                buf[n + 1] = c[1];
+                buf[n + 2] = c[2];
+            }
+            deck.write_lcd_raw(x, y, w as u16, h as u16, &buf)?;
+
+
+            for key in 0..8 {
+                let (w, h) = (120, 120);
+                let mut buf = vec![0u8; w * h * 3];
+                let c = [255, 255, 255];
+                for i in 0..h {
+                    let x = i;
+                    let y = i;
+                    let n = (x + (y * w)) * 3;
+                    buf[n + 0] = c[0];
+                    buf[n + 1] = c[1];
+                    buf[n + 2] = c[2];
+                }
+                deck.write_button_raw(key, w as u16, h as u16, &buf)?;
+            }
+
+            // deck.set_button_file(key, &file, &opts)?;
+        }        
     }
 
     Ok(())

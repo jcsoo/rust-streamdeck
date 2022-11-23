@@ -469,6 +469,12 @@ impl StreamDeck {
         Ok(mapped)
     }
 
+    pub fn write_button_raw(&mut self, key: u8, w: u16, h: u16, data: &[u8]) -> Result<(), Error> {
+        assert!(data.len() == (w as usize * h as usize * 3));
+        let image = self.convert_image(data.to_vec())?;
+        self.write_button_image(key, &image)
+    }
+
     /// Writes an image to a button
     /// Image at this point in correct dimensions and in device native colour order.
     pub fn write_button_image(&mut self, key: u8, image: &DeviceImage) -> Result<(), Error> {
@@ -562,6 +568,54 @@ impl StreamDeck {
             buf[5] = key;
         }
     }
+
+    pub fn write_lcd_raw(&mut self, x: u16, y: u16, w: u16, h: u16, data: &[u8]) -> Result<(), Error> {
+        assert!(data.len() == (w as usize * h as usize * 3));
+        let jpeg = encode_jpeg(data, w as usize, h as usize)?;
+        self.write_lcd_jpeg(x, y, w, h, &jpeg)
+    }
+
+    pub fn write_lcd_jpeg(&mut self, x: u16, y: u16, w: u16, h: u16, jpeg: &[u8]) -> Result<(), Error> {
+        const MAX_PACKET_SIZE: usize = 1024;
+        const PACKET_HEADER_LENGTH: usize = 16;
+        const MAX_PAYLOAD_SIZE: usize = MAX_PACKET_SIZE - PACKET_HEADER_LENGTH;
+
+        let mut buf = vec![0u8; MAX_PACKET_SIZE];
+
+        let mut remaining = jpeg.len();
+        let mut pos: usize = 0;
+        let mut part: u16  = 0;
+        while remaining > 0 {
+            let byte_count = remaining.min(MAX_PAYLOAD_SIZE);
+
+            buf[0] = 0x02;
+            buf[1] = 0x0c;
+            buf[2] = x.to_le_bytes()[0];
+            buf[3] = x.to_le_bytes()[1];
+            buf[4] = y.to_le_bytes()[0];
+            buf[5] = y.to_le_bytes()[1];
+            buf[6] = w.to_le_bytes()[0];
+            buf[7] = w.to_le_bytes()[1];
+            buf[8] = h.to_le_bytes()[0];
+            buf[9] = h.to_le_bytes()[1];
+            buf[10] = if remaining <= MAX_PAYLOAD_SIZE { 1 } else { 0 };
+            buf[11] = part.to_le_bytes()[0];
+            buf[12] = part.to_le_bytes()[1];
+            buf[13] = byte_count.to_le_bytes()[0];
+            buf[14] = byte_count.to_le_bytes()[1];
+
+            for i in 0..byte_count {
+                buf[PACKET_HEADER_LENGTH + i] = jpeg[pos];
+                pos += 1;
+            }
+            self.device.write(&buf)?;
+
+            remaining -= byte_count;
+            part += 1;
+        }
+        Ok(())
+    }
+
 }
 
 #[derive(Debug, Clone)]

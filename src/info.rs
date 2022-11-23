@@ -93,9 +93,10 @@ impl Kind {
 
     pub fn image_size(&self) -> (usize, usize) {
         match self {
-            Kind::Original | Kind::OriginalV2 | Kind::Mk2 | Kind::Plus => (72, 72),
+            Kind::Original | Kind::OriginalV2 | Kind::Mk2 => (72, 72),
             Kind::Mini => (80, 80),
             Kind::Xl => (96, 96),
+            Kind::Plus => (120, 120),
         }
     }
 
