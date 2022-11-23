@@ -6,6 +6,7 @@ pub enum Kind {
     Mini,
     Xl,
     Mk2,
+    Plus,
 }
 
 /// Stream Deck key layout direction
@@ -53,6 +54,7 @@ impl Kind {
             Kind::Original | Kind::OriginalV2 | Kind::Mk2 => 15,
             Kind::Mini => 6,
             Kind::Xl => 32,
+            Kind::Plus => 8,
         }
     }
 
@@ -60,7 +62,7 @@ impl Kind {
     pub(crate) fn key_data_offset(&self) -> usize {
         match self {
             Kind::Original => 0,
-            Kind::OriginalV2 | Kind::Mk2 => 3,
+            Kind::OriginalV2 | Kind::Mk2 | Kind::Plus => 3,
             Kind::Mini => 0,
             Kind::Xl => 3,
         }
@@ -78,19 +80,20 @@ impl Kind {
             Kind::Mini => 3,
             Kind::Original | Kind::OriginalV2 | Kind::Mk2 => 5,
             Kind::Xl => 8,
+            Kind::Plus => 4,
         }
     }
 
     pub fn image_mode(&self) -> ImageMode {
         match self {
             Kind::Original | Kind::Mini => ImageMode::Bmp,
-            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 => ImageMode::Jpeg,
+            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus => ImageMode::Jpeg,
         }
     }
 
     pub fn image_size(&self) -> (usize, usize) {
         match self {
-            Kind::Original | Kind::OriginalV2 | Kind::Mk2 => (72, 72),
+            Kind::Original | Kind::OriginalV2 | Kind::Mk2 | Kind::Plus => (72, 72),
             Kind::Mini => (80, 80),
             Kind::Xl => (96, 96),
         }
@@ -110,7 +113,7 @@ impl Kind {
             // On the original the image is flipped across the Y axis
             Kind::Original => Mirroring::Y,
             // On the V2 devices, both X and Y need to flip
-            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 => Mirroring::Both,
+            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus => Mirroring::Both,
         }
     }
 
@@ -129,7 +132,7 @@ impl Kind {
     pub(crate) fn image_report_header_len(&self) -> usize {
         match self {
             Kind::Original | Kind::Mini => 16,
-            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 => 8,
+            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus => 8,
         }
     }
 
@@ -139,20 +142,20 @@ impl Kind {
             Kind::Original => &ORIGINAL_IMAGE_BASE,
             Kind::Mini => &MINI_IMAGE_BASE,
 
-            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 => &[],
+            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus  => &[],
         }
     }
 
     pub(crate) fn image_colour_order(&self) -> ColourOrder {
         match self {
             Kind::Original | Kind::Mini => ColourOrder::BGR,
-            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 => ColourOrder::RGB,
+            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus  => ColourOrder::RGB,
         }
     }
 
     pub(crate) fn is_v2(&self) -> bool {
         match self {
-            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 => true,
+            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus => true,
             _ => false,
         }
     }

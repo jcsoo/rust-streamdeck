@@ -47,6 +47,16 @@ pub enum Commands {
         /// Read continuously
         continuous: bool,
     },
+    /// Fetch button states
+    GetInput {
+        #[structopt(long)]
+        /// Timeout for input reading
+        timeout: Option<Duration>,
+
+        #[structopt(long)]
+        /// Read continuously
+        continuous: bool,
+    },    
     /// Set button colours
     SetColour {
         /// Index of button to be set
@@ -119,6 +129,16 @@ fn do_command(deck: &mut StreamDeck, cmd: Commands) -> Result<(), Error> {
                 }
             }
         },
+        Commands::GetInput{timeout, continuous} => {
+            loop {
+                let input = deck.read_input(timeout.map(|t| *t ))?;
+                info!("input: {:?}", input);
+
+                if !continuous {
+                    break
+                }
+            }
+        },        
         Commands::SetColour{key, colour} => {
             info!("Setting key {} colour to: ({:?})", key, colour);
             deck.set_button_rgb(key, &colour)?;

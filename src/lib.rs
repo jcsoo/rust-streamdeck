@@ -94,6 +94,7 @@ pub mod pids {
     pub const MINI: u16 = 0x0063;
     pub const XL: u16 = 0x006c;
     pub const MK2: u16 = 0x0080;
+    pub const PLUS: u16 = 0x0084;
 }
 
 impl StreamDeck {
@@ -119,6 +120,7 @@ impl StreamDeck {
             pids::ORIGINAL_V2 => Kind::OriginalV2,
             pids::XL => Kind::Xl,
             pids::MK2 => Kind::Mk2,
+            pids::PLUS => Kind::Plus,
 
             _ => return Err(Error::UnrecognisedPID),
         };
@@ -213,6 +215,81 @@ impl StreamDeck {
         Ok(())
     }
 
+    pub fn read_input(&mut self, timeout: Option<Duration>) -> Result<Input, Error> {
+        let mut cmd = [0u8; 36];
+        let keys = self.kind.keys() as usize;
+        let offset = self.kind.key_data_offset();
+
+        match timeout {
+            Some(t) => self
+                .device
+                .read_timeout(&mut cmd[..keys + offset + 1], t.as_millis() as i32)?,
+            None => self.device.read(&mut cmd[..keys + offset + 1])?,
+        };
+
+        if cmd[0] == 0 {
+            return Err(Error::NoData);
+        }
+
+        match (cmd[1], cmd[2]) {
+            (0x00, 0x08) => {
+                let mut out = vec![0u8; keys];
+                match self.kind.key_direction() {
+                    KeyDirection::RightToLeft => {
+                        for (i, val) in out.iter_mut().enumerate() {
+                            // In right-to-left mode(original Streamdeck) the first key has index 1,
+                            // so we don't add the +1 here.
+                            *val = cmd[offset + self.translate_key_index(i as u8)? as usize];
+                        }
+                    }
+                    KeyDirection::LeftToRight => {
+                        out[0..keys].copy_from_slice(&cmd[1 + offset..1 + offset + keys]);
+                    }
+                }
+                Ok(Input::Button(out))
+            },
+            (0x02, 0x0e) => {
+                match (cmd[4], cmd[5]) {
+                    (0x01, 0x01)  => {
+                        let (x, y) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
+                        Ok(Input::Touch(TouchInput::Short { x, y }))
+                    },
+                    (0x02, 0x01) => {
+                        let (x, y) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
+                        Ok(Input::Touch(TouchInput::Long { x, y }))
+                    },
+                    (0x03, 0x00) => {
+                        let (x0, y0) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
+                        let x1 = u16::from_le_bytes([cmd[10], cmd[11]]);
+                        let y1 = y0;
+                        Ok(Input::Touch(TouchInput::Swipe { x0, y0, x1, y1 }))
+                    }
+                    _ => unimplemented!(),
+                }
+            },
+            (0x03, 0x05) => {
+                match cmd[4] {
+                    0 => {
+                        Ok(Input::Knob(KnobInput::Press(cmd[5..9].to_vec())))
+                    },
+                    1 => {
+                        Ok(Input::Knob(KnobInput::Rotate(
+                            vec![
+                                cmd[5] as i8,
+                                cmd[6] as i8,
+                                cmd[7] as i8,
+                                cmd[8] as i8,
+                            ]
+                        )))
+                    },
+                    _ => unimplemented!()
+                }
+            },
+            _ => Ok(Input::Other),
+        }
+
+    }
+
     /// Fetch button states
     ///
     /// In blocking mode this will wait until a report packet has been received
@@ -233,6 +310,8 @@ impl StreamDeck {
         if cmd[0] == 0 {
             return Err(Error::NoData);
         }
+
+        println!("{:02x?}", cmd);
 
         let mut out = vec![0u8; keys];
         match self.kind.key_direction() {
@@ -483,6 +562,28 @@ impl StreamDeck {
             buf[5] = key;
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Input {
+    None,
+    Button(Vec<u8>),
+    Touch(TouchInput),
+    Knob(KnobInput),
+    Other
+}
+
+#[derive(Debug, Clone)]
+pub enum KnobInput {
+    Press(Vec<u8>),
+    Rotate(Vec<i8>),
+}
+
+#[derive(Debug, Clone)]
+pub enum TouchInput {
+    Short { x: u16, y: u16 },
+    Long { x: u16, y: u16 },
+    Swipe { x0: u16, y0: u16, x1: u16, y1: u16},
 }
 
 /// TextPosition is how to position text via set_button_text
