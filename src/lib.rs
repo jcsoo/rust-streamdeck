@@ -231,8 +231,66 @@ impl StreamDeck {
             return Err(Error::NoData);
         }
 
-        match (cmd[1], cmd[2]) {
-            (0x00, 0x08) => {
+        match self.kind {
+            Kind::Plus => {
+                match (cmd[1], cmd[2]) {
+                    (0x00, 0x08) => {
+                        let mut out = vec![0u8; keys];
+                        match self.kind.key_direction() {
+                            KeyDirection::RightToLeft => {
+                                for (i, val) in out.iter_mut().enumerate() {
+                                    // In right-to-left mode(original Streamdeck) the first key has index 1,
+                                    // so we don't add the +1 here.
+                                    *val = cmd[offset + self.translate_key_index(i as u8)? as usize];
+                                }
+                            }
+                            KeyDirection::LeftToRight => {
+                                out[0..keys].copy_from_slice(&cmd[1 + offset..1 + offset + keys]);
+                            }
+                        }
+                        Ok(Input::Button(out))
+                    },
+                    (0x02, 0x0e) => {
+                        match (cmd[4], cmd[5]) {
+                            (0x01, 0x01)  => {
+                                let (x, y) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
+                                Ok(Input::Touch(TouchInput::Short { x, y }))
+                            },
+                            (0x02, 0x01) => {
+                                let (x, y) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
+                                Ok(Input::Touch(TouchInput::Long { x, y }))
+                            },
+                            (0x03, 0x00) => {
+                                let (x0, y0) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
+                                let x1 = u16::from_le_bytes([cmd[10], cmd[11]]);
+                                let y1 = y0;
+                                Ok(Input::Touch(TouchInput::Swipe { x0, y0, x1, y1 }))
+                            }
+                            _ => unimplemented!(),
+                        }
+                    },
+                    (0x03, 0x05) => {
+                        match cmd[4] {
+                            0 => {
+                                Ok(Input::Knob(KnobInput::Press(cmd[5..9].to_vec())))
+                            },
+                            1 => {
+                                Ok(Input::Knob(KnobInput::Rotate(
+                                    vec![
+                                        cmd[5] as i8,
+                                        cmd[6] as i8,
+                                        cmd[7] as i8,
+                                        cmd[8] as i8,
+                                    ]
+                                )))
+                            },
+                            _ => unimplemented!()
+                        }
+                    },
+                    _ => Ok(Input::Other),
+                }
+            }
+            _ => {
                 let mut out = vec![0u8; keys];
                 match self.kind.key_direction() {
                     KeyDirection::RightToLeft => {
@@ -247,45 +305,7 @@ impl StreamDeck {
                     }
                 }
                 Ok(Input::Button(out))
-            },
-            (0x02, 0x0e) => {
-                match (cmd[4], cmd[5]) {
-                    (0x01, 0x01)  => {
-                        let (x, y) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
-                        Ok(Input::Touch(TouchInput::Short { x, y }))
-                    },
-                    (0x02, 0x01) => {
-                        let (x, y) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
-                        Ok(Input::Touch(TouchInput::Long { x, y }))
-                    },
-                    (0x03, 0x00) => {
-                        let (x0, y0) = (u16::from_le_bytes([cmd[6], cmd[7]]), cmd[8] as u16);
-                        let x1 = u16::from_le_bytes([cmd[10], cmd[11]]);
-                        let y1 = y0;
-                        Ok(Input::Touch(TouchInput::Swipe { x0, y0, x1, y1 }))
-                    }
-                    _ => unimplemented!(),
-                }
-            },
-            (0x03, 0x05) => {
-                match cmd[4] {
-                    0 => {
-                        Ok(Input::Knob(KnobInput::Press(cmd[5..9].to_vec())))
-                    },
-                    1 => {
-                        Ok(Input::Knob(KnobInput::Rotate(
-                            vec![
-                                cmd[5] as i8,
-                                cmd[6] as i8,
-                                cmd[7] as i8,
-                                cmd[8] as i8,
-                            ]
-                        )))
-                    },
-                    _ => unimplemented!()
-                }
-            },
-            _ => Ok(Input::Other),
+            }            
         }
 
     }
