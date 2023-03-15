@@ -25,7 +25,7 @@ pub enum ImageMode {
 
 /// Stream Deck color mode
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum ColourOrder {
+pub enum ColourOrder {
     RGB,
     BGR,
 }
@@ -75,7 +75,7 @@ impl Kind {
         }
     }
 
-    pub(crate) fn key_columns(&self) -> u8 {
+    pub fn key_columns(&self) -> u8 {
         match self {
             Kind::Mini => 3,
             Kind::Original | Kind::OriginalV2 | Kind::Mk2 => 5,
@@ -121,7 +121,8 @@ impl Kind {
             // On the original the image is flipped across the Y axis
             Kind::Original => Mirroring::Y,
             // On the V2 devices, both X and Y need to flip
-            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus => Mirroring::Both,
+            Kind::OriginalV2 | Kind::Xl | Kind::Mk2 => Mirroring::Both,
+            Kind::Plus => Mirroring::None,
         }
     }
 
@@ -154,7 +155,7 @@ impl Kind {
         }
     }
 
-    pub(crate) fn image_colour_order(&self) -> ColourOrder {
+    pub fn image_colour_order(&self) -> ColourOrder {
         match self {
             Kind::Original | Kind::Mini => ColourOrder::BGR,
             Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus  => ColourOrder::RGB,

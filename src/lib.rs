@@ -498,8 +498,10 @@ impl StreamDeck {
     /// Writes an image to a button
     /// Image at this point in correct dimensions and in device native colour order.
     pub fn write_button_image(&mut self, key: u8, image: &DeviceImage) -> Result<(), Error> {
+        self.write_button_image_raw(key, &image.data)
+    }
 
-        let image = &image.data;
+    pub fn write_button_image_raw(&mut self, key: u8, image: &[u8]) -> Result<(), Error> {
         let key = self.translate_key_index(key)?;
 
         let mut buf = vec![0u8; self.kind.image_report_len()];
