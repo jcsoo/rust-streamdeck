@@ -84,6 +84,13 @@ impl Kind {
         }
     }
 
+    pub fn knobs(&self) -> u8 {
+        match self {
+            Kind::Plus => 4,
+            _ => 0,
+        }
+    }
+
     pub fn image_mode(&self) -> ImageMode {
         match self {
             Kind::Original | Kind::Mini => ImageMode::Bmp,
@@ -151,6 +158,13 @@ impl Kind {
         match self {
             Kind::Original | Kind::Mini => ColourOrder::BGR,
             Kind::OriginalV2 | Kind::Xl | Kind::Mk2 | Kind::Plus  => ColourOrder::RGB,
+        }
+    }
+
+    pub fn lcd_size(&self) -> Option<(usize, usize)> {
+        match self {
+            Kind::Plus => Some((800, 100)),
+            _ => None,
         }
     }
 
