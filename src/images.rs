@@ -4,6 +4,7 @@ use image::io::Reader;
 use image::codecs::jpeg::JpegEncoder;
 use image::DynamicImage;
 use image::{imageops::FilterType, ColorType, Pixel, Rgba};
+use tracing::error;
 
 use crate::info::{ColourOrder, Mirroring, Rotation};
 use crate::{Error, rgb_to_bgr};

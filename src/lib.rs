@@ -1,14 +1,12 @@
 use std::{io::Error as IoError};
 use std::time::Duration;
 
-#[macro_use]
-extern crate log;
-
 extern crate hidapi;
 use hidapi::{HidApi, HidDevice, HidError};
 
 extern crate image;
 use image::{DynamicImage, ImageBuffer, ImageError, Rgb};
+use tracing::{trace, debug};
 
 pub mod images;
 use crate::images::{apply_transform, encode_jpeg};
@@ -45,6 +43,7 @@ pub struct Filter {
     pub serial: Option<String>,
 }
 
+#[cfg(feature = "structopt")]
 fn u16_parse_hex(s: &str) -> Result<u16, std::num::ParseIntError> {
     u16::from_str_radix(s, 16)
 }
