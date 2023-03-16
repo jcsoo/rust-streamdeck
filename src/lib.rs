@@ -5,7 +5,10 @@ extern crate hidapi;
 use hidapi::{HidApi, HidDevice, HidError};
 
 extern crate image;
-use image::{DynamicImage, ImageBuffer, ImageError, Rgb};
+use image::{DynamicImage, ImageError};
+#[cfg(feature = "text")]
+use image::{ImageBuffer, Rgb};
+
 use tracing::{trace, debug};
 
 pub mod images;
@@ -15,8 +18,11 @@ pub use crate::images::{Colour, ImageOptions};
 pub mod info;
 pub use info::*;
 
+#[cfg(feature = "text")]
 use imageproc::drawing::draw_text_mut;
+#[cfg(feature = "text")]
 use rusttype::{Font, Scale};
+#[cfg(feature = "text")]
 use std::str::FromStr;
 use thiserror::Error;
 
@@ -410,6 +416,7 @@ impl StreamDeck {
 
     /// Sets a button to the provided text.
     /// Will break text over \n linebreaks
+    #[cfg(feature = "text")]
     pub fn set_button_text(
         &mut self,
         key: u8,
@@ -668,6 +675,7 @@ pub enum TextPosition {
 }
 
 /// Text Options provide values for text buttons
+#[cfg(feature = "text")]
 pub struct TextOptions {
     foreground: Colour,
     background: Colour,
@@ -675,6 +683,7 @@ pub struct TextOptions {
     line_height: f32,
 }
 
+#[cfg(feature = "text")]
 impl TextOptions {
     pub fn new(foreground: Colour, background: Colour, scale: Scale, line_height: f32) -> Self {
         TextOptions {
@@ -686,6 +695,7 @@ impl TextOptions {
     }
 }
 
+#[cfg(feature = "text")]
 impl Default for TextOptions {
     /// default is white text on a black background, with 15 pixel high text
     /// and 1.1x the line height.
